@@ -15,12 +15,23 @@ st.title("🏠 Airbnb Hotel Booking Analysis")
 st.caption("Interactive dashboard based on the original Airbnb Hotel Booking Analysis notebook")
 
 @st.cache_data
-def load_data(uploaded_file):
-    name = uploaded_file.name.lower()
-    if name.endswith(".xlsx") or name.endswith(".xls"):
-        return pd.read_excel(uploaded_file)
-    return pd.read_csv(uploaded_file)
+# Sidebar
+st.sidebar.header("📁 Data")
 
+# Automatically load the dataset from GitHub
+DATA_FILE = "Airbnb_Open_Data.xlsx"
+
+raw = pd.read_excel(DATA_FILE)
+
+st.sidebar.success("Dataset loaded automatically ✅")
+
+st.sidebar.markdown("---")
+st.sidebar.info(
+    "The dashboard follows the cleaning steps and analysis questions "
+    "from the original notebook."
+)
+
+df = clean_data(raw)
 def clean_data(df):
     df = df.copy()
 
