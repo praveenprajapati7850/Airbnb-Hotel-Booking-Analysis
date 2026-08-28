@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -15,12 +16,21 @@ st.caption(
     "Interactive dashboard based on the original Airbnb Hotel Booking Analysis notebook"
 )
 
+# Default dataset path in GitHub repo
+DATA_FILE_XLSX = "Airbnb_Open_Data.xlsx"
+DATA_FILE_CSV = "Airbnb_Open_Data.csv"
+
 
 @st.cache_data
-def load_data(file):
-    if file.name.endswith(".csv"):
-        return pd.read_csv(file)
-    return pd.read_excel(file)
+def load_data(file_or_path):
+    if isinstance(file_or_path, str):
+        if file_or_path.lower().endswith(".csv"):
+            return pd.read_csv(file_or_path, low_memory=False)
+        return pd.read_excel(file_or_path)
+    else:
+        if file_or_path.name.lower().endswith(".csv"):
+            return pd.read_csv(file_or_path, low_memory=False)
+        return pd.read_excel(file_or_path)
 
 
 @st.cache_data
@@ -82,22 +92,35 @@ def clean_data(df):
     return df
 
 
-# Sidebar
+# Sidebar - Data Loading
 st.sidebar.header("📁 Data")
 uploaded = st.sidebar.file_uploader(
-    "Upload Airbnb_Open_Data.xlsx or Airbnb_Open_Data.csv",
+    "Upload custom dataset (Optional)",
     type=["xlsx", "xls", "csv"],
 )
 
 st.sidebar.markdown("---")
 st.sidebar.info(
-    "The dashboard follows the cleaning steps and analysis questions in the original notebook."
+    "The dashboard follows the cleaning steps and analysis questions in the "
+    "original notebook."
 )
 
-if uploaded is None:
-    st.info(
-        "👆 Upload the Airbnb dataset from the sidebar to start the interactive dashboard."
+# Load priority: 1) Uploaded file, 2) XLSX in repo, 3) CSV in repo
+if uploaded is not None:
+    raw = load_data(uploaded)
+    st.sidebar.success("Custom file loaded ✅")
+elif os.path.exists(DATA_FILE_XLSX):
+    raw = load_data(DATA_FILE_XLSX)
+    st.sidebar.success(f"Loaded '{DATA_FILE_XLSX}' automatically ✅")
+elif os.path.exists(DATA_FILE_CSV):
+    raw = load_data(DATA_FILE_CSV)
+    st.sidebar.success(f"Loaded '{DATA_FILE_CSV}' automatically ✅")
+else:
+    st.error(
+        f"Neither '{DATA_FILE_XLSX}' nor '{DATA_FILE_CSV}' was found in the repository root. "
+        "Please upload a file using the sidebar to proceed."
     )
+    st.info("👆 Upload the Airbnb dataset from the sidebar to start the interactive dashboard.")
     st.markdown("### Project overview")
     st.write(
         "This dashboard converts the original Jupyter Notebook into an interactive "
@@ -107,10 +130,9 @@ if uploaded is None:
     )
     st.stop()
 
-raw = load_data(uploaded)
 df = clean_data(raw)
 
-# Filters
+# Sidebar - Filters
 st.sidebar.header("🔎 Filters")
 
 if "neighbourhood group" in df.columns:
@@ -133,7 +155,7 @@ if "room type" in filtered.columns:
     )
     filtered = filtered[filtered["room type"].isin(selected_rooms)].copy()
 
-# KPI row
+# KPI Row
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Listings", f"{len(filtered):,}")
 if "price ($)" in filtered.columns:
@@ -141,10 +163,9 @@ if "price ($)" in filtered.columns:
 if "review rate number" in filtered.columns:
     c3.metric("Average rating", f"{filtered['review rate number'].mean():.2f} ⭐")
 if "availability 365" in filtered.columns:
-    c4.metric(
-        "Avg. availability", f"{filtered['availability 365'].mean():.0f} days"
-    )
+    c4.metric("Avg. availability", f"{filtered['availability 365'].mean():.0f} days")
 
+# Visual Tabs
 tabs = st.tabs(
     [
         "📊 Overview",
@@ -211,13 +232,9 @@ with tabs[2]:
             labels=labels,
             include_lowest=True,
         )
-        avail = temp.groupby("host_size", observed=True)[
-            "availability 365"
-        ].mean()
+        avail = temp.groupby("host_size", observed=True)["availability 365"].mean()
         st.bar_chart(avail)
-        corr = temp["calculated host listings count"].corr(
-            temp["availability 365"]
-        )
+        corr = temp["calculated host listings count"].corr(temp["availability 365"])
         st.metric("Host listings vs availability correlation", f"{corr:.4f}")
 
 with tabs[3]:
@@ -271,9 +288,7 @@ with tabs[4]:
     ]
     numeric_cols = [c for c in numeric_candidates if c in filtered.columns]
     if len(numeric_cols) >= 2:
-        st.dataframe(
-            filtered[numeric_cols].corr().round(2), use_container_width=True
-        )
+        st.dataframe(filtered[numeric_cols].corr().round(2), use_container_width=True)
 
 with tabs[5]:
     st.subheader("Cleaned Dataset")
