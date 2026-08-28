@@ -16,7 +16,7 @@ st.caption("Interactive dashboard based on the original Airbnb Hotel Booking Ana
 
 @st.cache_data
 # Sidebar
-st.sidebar.header("📁 Data")
+st.sidebar.header(" Data")
 
 # Automatically load the dataset from GitHub
 DATA_FILE = "Airbnb_Open_Data.xlsx"
