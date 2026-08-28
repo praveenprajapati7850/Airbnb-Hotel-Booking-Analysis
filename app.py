@@ -1,7 +1,6 @@
-
-import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
+import streamlit as st
 
 st.set_page_config(
     page_title="Airbnb Hotel Booking Analysis",
@@ -12,29 +11,21 @@ st.set_page_config(
 PALETTE = ["#B85042", "#E7A11A", "#A7BEAE", "#6D2E46", "#50808E"]
 
 st.title("🏠 Airbnb Hotel Booking Analysis")
-st.caption("Interactive dashboard based on the original Airbnb Hotel Booking Analysis notebook")
-
-@st.cache_data
-# Sidebar
-st.sidebar.header(" Data")
-
-# Automatically load the dataset from GitHub
-DATA_FILE = "Airbnb_Open_Data.xlsx"
-
-raw = pd.read_excel(DATA_FILE)
-
-st.sidebar.success("Dataset loaded automatically ✅")
-
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "The dashboard follows the cleaning steps and analysis questions "
-    "from the original notebook."
+st.caption(
+    "Interactive dashboard based on the original Airbnb Hotel Booking Analysis notebook"
 )
 
-df = clean_data(raw)
+
+@st.cache_data
+def load_data(file):
+    if file.name.endswith(".csv"):
+        return pd.read_csv(file)
+    return pd.read_excel(file)
+
+
+@st.cache_data
 def clean_data(df):
     df = df.copy()
-
     df = df.drop_duplicates()
 
     for c in ["house_rules", "license"]:
@@ -44,7 +35,8 @@ def clean_data(df):
     for c in ["price", "service fee"]:
         if c in df.columns:
             df[c] = pd.to_numeric(
-                df[c].astype(str)
+                df[c]
+                .astype(str)
                 .str.replace("$", "", regex=False)
                 .str.replace(",", "", regex=False)
                 .str.strip(),
@@ -89,6 +81,7 @@ def clean_data(df):
 
     return df
 
+
 # Sidebar
 st.sidebar.header("📁 Data")
 uploaded = st.sidebar.file_uploader(
@@ -98,12 +91,13 @@ uploaded = st.sidebar.file_uploader(
 
 st.sidebar.markdown("---")
 st.sidebar.info(
-    "The dashboard follows the cleaning steps and analysis questions in the "
-    "original notebook."
+    "The dashboard follows the cleaning steps and analysis questions in the original notebook."
 )
 
 if uploaded is None:
-    st.info("👆 Upload the Airbnb dataset from the sidebar to start the interactive dashboard.")
+    st.info(
+        "👆 Upload the Airbnb dataset from the sidebar to start the interactive dashboard."
+    )
     st.markdown("### Project overview")
     st.write(
         "This dashboard converts the original Jupyter Notebook into an interactive "
@@ -147,17 +141,21 @@ if "price ($)" in filtered.columns:
 if "review rate number" in filtered.columns:
     c3.metric("Average rating", f"{filtered['review rate number'].mean():.2f} ⭐")
 if "availability 365" in filtered.columns:
-    c4.metric("Avg. availability", f"{filtered['availability 365'].mean():.0f} days")
+    c4.metric(
+        "Avg. availability", f"{filtered['availability 365'].mean():.0f} days"
+    )
 
-tabs = st.tabs([
-    "📊 Overview",
-    "🏘️ Neighbourhoods & Prices",
-    "👤 Hosts",
-    "⭐ Reviews",
-    "📈 Relationships",
-    "📋 Data",
-    "💡 Conclusions",
-])
+tabs = st.tabs(
+    [
+        "📊 Overview",
+        "🏘️ Neighbourhoods & Prices",
+        "👤 Hosts",
+        "⭐ Reviews",
+        "📈 Relationships",
+        "📋 Data",
+        "💡 Conclusions",
+    ]
+)
 
 with tabs[0]:
     st.subheader("Listings by Room Type")
@@ -213,9 +211,13 @@ with tabs[2]:
             labels=labels,
             include_lowest=True,
         )
-        avail = temp.groupby("host_size", observed=True)["availability 365"].mean()
+        avail = temp.groupby("host_size", observed=True)[
+            "availability 365"
+        ].mean()
         st.bar_chart(avail)
-        corr = temp["calculated host listings count"].corr(temp["availability 365"])
+        corr = temp["calculated host listings count"].corr(
+            temp["availability 365"]
+        )
         st.metric("Host listings vs availability correlation", f"{corr:.4f}")
 
 with tabs[3]:
@@ -246,9 +248,9 @@ with tabs[4]:
         corr_fee = filtered["price ($)"].corr(filtered["service fee ($)"])
         st.metric("Correlation", f"{corr_fee:.4f}")
         st.scatter_chart(
-            filtered[["price ($)", "service fee ($)"]].sample(
-                min(4000, len(filtered)), random_state=1
-            ).set_index("price ($)")
+            filtered[["price ($)", "service fee ($)"]]
+            .sample(min(4000, len(filtered)), random_state=1)
+            .set_index("price ($)")
         )
 
     st.subheader("Construction Year vs Price")
@@ -269,7 +271,9 @@ with tabs[4]:
     ]
     numeric_cols = [c for c in numeric_candidates if c in filtered.columns]
     if len(numeric_cols) >= 2:
-        st.dataframe(filtered[numeric_cols].corr().round(2), use_container_width=True)
+        st.dataframe(
+            filtered[numeric_cols].corr().round(2), use_container_width=True
+        )
 
 with tabs[5]:
     st.subheader("Cleaned Dataset")
